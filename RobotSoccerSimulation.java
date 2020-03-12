@@ -50,21 +50,28 @@ public class RobotSoccerSimulation extends JPanel {
             this.x = constrain(this.x + v * dx, this.radius, WIDTH - this.radius);
             this.y = constrain(this.y + v * dy, this.radius, HEIGHT - this.radius);
           }
-        // Slow down the ball by FRICTION. Don't let it go negative, though!
+
           void applyFriction() {
             double Infinity = Double.POSITIVE_INFINITY;
             this.speed = constrain(this.speed - FRICTION, 0, Infinity);
           }
 
-        // Returns whether the ball is *entirely* inside the goal
           boolean inside(Goal goal) {
             return (
-              this.x - this.radius > x - WIDTH / 2 &&
-              this.x + this.radius < x + WIDTH / 2 &&
-              this.y - this.radius > y - HEIGHT / 2 &&
-              this.y + this.radius < y + HEIGHT / 2
+              this.x - this.radius > goal.x - goal.w / 2 &&
+              this.x + this.radius < goal.x + goal.w / 2 &&
+              this.y - this.radius > goal.y - goal.h / 2 &&
+              this.y + this.radius < goal.y + goal.h / 2
             );
           }
+
+          public static void endSimulationIfNecessary(){
+            if (balls[0].speed <= 0) {
+              endMessage = "Oh no!";
+          } else if (balls[0].inside(goal)) {
+              endMessage = "GOOOAAAL!!!";
+          }
+        }
 
           public static void adjustIfCollisions(){
             for(var b1: balls){
@@ -86,14 +93,7 @@ public class RobotSoccerSimulation extends JPanel {
               }
             }
           }
-          public static void endSimulationIfNecessary(){
-            if (balls[0].speed <= 0) {
-              endMessage = "Oh no!";
-          } else if (balls[0].inside(goal)) {
-              endMessage = "GOOOAAAL!!!";
-          }
         }
-      }
 
     private static Ball[] balls;
 
@@ -124,7 +124,7 @@ public class RobotSoccerSimulation extends JPanel {
 
     private void runTheAnimation() {
         while (endMessage == null) {
-          for (var i = 0; i  < balls.length; i ++) {
+          for (var i = 0; i < balls.length; i++) {
             balls[i].applyFriction();
             balls[i].moveToward(i == 0 ? goal.x : balls[0].x, i == 0 ? goal.y : balls[0].y);
           };
@@ -138,44 +138,50 @@ public class RobotSoccerSimulation extends JPanel {
         }
     }
 
-public static void main(String[] args) {
+    public static void main(String[] args) {
 
-  try {
-      PLAYER_RADIUS = Double.parseDouble(args[0]);
-      ENEMY_RADIUS = Double.parseDouble(args[1]);
-      PLAYER_SPEED = Double.parseDouble(args[2]);
-      ENEMY_SPEED = Double.parseDouble(args[3]);
-      FRICTION = Double.parseDouble(args[4]);
-      if (FRICTION < .0009) {
-        throw new IllegalArgumentException("The parameter for friction needs to be a value of at least .0009");
-      } else if (PLAYER_RADIUS > 25 || PLAYER_RADIUS < 5
-                     || ENEMY_RADIUS > 50 || ENEMY_RADIUS < 5) {
-        throw new IllegalArgumentException("Parameters for ball radii out of range.");
-      } else if (PLAYER_SPEED > 100 || ENEMY_SPEED > 100) {
-        throw new IllegalArgumentException("Parameter for ball speed cannot exceed 100.");
+      try {
+
+        PLAYER_RADIUS = Double.parseDouble(args[0]);
+        ENEMY_RADIUS = Double.parseDouble(args[1]);
+        PLAYER_SPEED = Double.parseDouble(args[2]);
+        ENEMY_SPEED = Double.parseDouble(args[3]);
+        FRICTION = Double.parseDouble(args[4]);
+
+        if (FRICTION < .0009) {
+          throw new IllegalArgumentException("The parameter for friction needs to be a value of at least .0009");
+        } else if (PLAYER_RADIUS > 25 || PLAYER_RADIUS < 5
+                       || ENEMY_RADIUS > 50 || ENEMY_RADIUS < 5) {
+          throw new IllegalArgumentException("Parameters for ball radii out of range.");
+        } else if (PLAYER_SPEED > 100 || ENEMY_SPEED > 100) {
+          throw new IllegalArgumentException("Parameter for ball speed cannot exceed 100.");
+        }
+
+      } catch (NumberFormatException e) {
+            System.err.println("Sorry, parameters must be numbers! Try again.");
+            return;
+      } catch (IllegalArgumentException e) {
+            System.err.println(e.getMessage());
+            return;
       }
-    } catch (NumberFormatException e) {
-          System.err.println("Sorry, parameters must be numbers! Try again.");
-          return;
-    } catch (IllegalArgumentException e) {
-          System.err.println(e.getMessage());
-          return;
-    }
-  SwingUtilities.invokeLater(() -> {
+
+      SwingUtilities.invokeLater(() -> {
           balls = new Ball[] {
               new Ball(0.0, HEIGHT, PLAYER_RADIUS, PLAYER_SPEED, Color.BLUE),
               new Ball(WIDTH * 0.25, 40, ENEMY_RADIUS, ENEMY_SPEED, Color.RED),
               new Ball(WIDTH * 0.75, 40, ENEMY_RADIUS, ENEMY_SPEED, Color.RED),
               new Ball(WIDTH / 2, HEIGHT / 2, ENEMY_RADIUS, ENEMY_SPEED, Color.RED)
           };
-            var panel = new RobotSoccerSimulation();
-            panel.setBackground(Color.GREEN.brighter());
-            var frame = new JFrame("Robotic Soccer");
-            frame.setSize((int)WIDTH, (int)HEIGHT);
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.getContentPane().add(panel, BorderLayout.CENTER);
-            frame.setVisible(true);
-            new Thread(() -> panel.runTheAnimation()).start();
-        });
-    }
+
+          var panel = new RobotSoccerSimulation();
+          panel.setBackground(Color.GREEN.brighter());
+          var frame = new JFrame("Robotic Soccer");
+          frame.setSize((int)WIDTH, (int)HEIGHT);
+          frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+          frame.getContentPane().add(panel, BorderLayout.CENTER);
+          frame.setVisible(true);
+          new Thread(() -> panel.runTheAnimation()).start();
+
+      });
+  }
 }
